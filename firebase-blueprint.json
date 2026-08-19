@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Lubricant grade catalog item with character holder",
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Category identifier for the lubricant"
+        },
+        "code": {
+          "type": "string",
+          "description": "Grade code such as 10W-40, 20W-50 or 5W-30"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the lubricant product"
+        },
+        "apiStandard": {
+          "type": "string",
+          "description": "API or industry specification standard"
+        },
+        "description": {
+          "type": "string",
+          "description": "Full marketing and technical description"
+        },
+        "characterId": {
+          "type": "string",
+          "description": "ID of prebuilt character titan holding the bottle"
+        },
+        "bg": {
+          "type": "string",
+          "description": "Hex color for background theme"
+        },
+        "panel": {
+          "type": "string",
+          "description": "Hex color for panel accents"
+        },
+        "accent": {
+          "type": "string",
+          "description": "Hex color for text and highlights"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Optional URL for product image or character artwork"
+        },
+        "bottleImageUrl": {
+          "type": "string",
+          "description": "Optional uploaded bottle image URL"
+        },
+        "specs": {
+          "type": "object",
+          "description": "Technical specifications like viscosity index, pour point, OEM approvals"
+        }
+      },
+      "required": [
+        "category",
+        "code",
+        "name",
+        "apiStandard",
+        "description",
+        "bg",
+        "panel",
+        "accent"
+      ]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of all lubricant grades in the catalog"
+    }
+  }
+}
