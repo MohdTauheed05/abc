@@ -12,13 +12,15 @@ import {
   Package,
   ArrowLeft,
 } from 'lucide-react';
-import { HD_CHARACTERS_LIST, type HDCharacterAsset } from '../data/characters';
+import { type HDCharacterAsset } from '../data/characters';
 import { type BackgroundPreviewMode } from '../types/charector';
 import { useProducts } from '../hooks/useProducts';
+import { useCharacters } from '../hooks/useCharacters';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function CharacterStudio(): JSX.Element {
   useProducts();
-  const [characters] = useState<HDCharacterAsset[]>(HD_CHARACTERS_LIST);
+  const { characters } = useCharacters();
   const [previewMode, setPreviewMode] = useState<BackgroundPreviewMode>('checker-dark');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCharacter, setSelectedCharacter] = useState<HDCharacterAsset | null>(null);
@@ -87,14 +89,14 @@ export default function CharacterStudio(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] flex flex-col font-sans selection:bg-cyan-400 selection:text-black">
+    <div className="min-h-screen bg-canvas text-[#E0E0E0] flex flex-col font-sans selection:bg-cyan-400 selection:text-black">
       {/* Header */}
-      <header className="border-b border-white/10 bg-[#0A0A0A] sticky top-0 z-40 px-4 sm:px-8 py-4 flex items-center shrink-0">
+      <header className="border-b border-line/10 bg-canvas sticky top-0 z-40 px-4 sm:px-8 py-4 flex items-center shrink-0">
         <div className="w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <Link
               to="/"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-tint/5 hover:bg-tint/10 border border-line/10 text-ink/70 hover:text-ink transition-colors"
               title="Return to Main Storefront"
             >
               <ArrowLeft size={18} />
@@ -103,7 +105,7 @@ export default function CharacterStudio(): JSX.Element {
               <Package className="w-5 h-5 text-black" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
                 Character Bottle Studio
                 <span className="text-[9px] uppercase tracking-[0.2em] font-mono px-2 py-0.5 border border-cyan-400/40 text-cyan-300 bg-cyan-950/50 font-bold">
                   4K PRO
@@ -116,9 +118,10 @@ export default function CharacterStudio(): JSX.Element {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               to="/admin"
-              className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider border border-white/20 hover:border-white text-white/80 hover:text-white rounded bg-white/5 hover:bg-white/10 transition-colors"
+              className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider border border-line/20 hover:border-white text-ink/80 hover:text-ink rounded bg-tint/5 hover:bg-tint/10 transition-colors"
             >
               Admin
             </Link>
@@ -127,11 +130,11 @@ export default function CharacterStudio(): JSX.Element {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 bg-[#050505] w-full mx-auto px-4 sm:px-8 py-8 space-y-7">
+      <main className="flex-1 bg-canvas w-full mx-auto px-4 sm:px-8 py-8 space-y-7">
         {/* Section Header & Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line/10 pb-5">
           <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-ink tracking-tight flex items-center gap-2">
               Cyber Warrior Guardians
               <span className="text-xs sm:text-sm font-mono text-cyan-400">
                 [{String(filteredList.length).padStart(2, '0')} Models]
@@ -145,38 +148,38 @@ export default function CharacterStudio(): JSX.Element {
           {/* Background Mode & Category Filters */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Background Preview Buttons */}
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1">
+            <div className="flex items-center gap-1 bg-tint/5 border border-line/10 p-1">
               <button
                 onClick={() => setPreviewMode('checker-dark')}
-                className={`p-1.5 ${previewMode === 'checker-dark' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-white'}`}
+                className={`p-1.5 ${previewMode === 'checker-dark' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-ink'}`}
                 title="Dark Checker"
               >
                 <Grid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setPreviewMode('checker-light')}
-                className={`p-1.5 ${previewMode === 'checker-light' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-white'}`}
+                className={`p-1.5 ${previewMode === 'checker-light' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-ink'}`}
                 title="Light Checker"
               >
                 <Square className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setPreviewMode('black')}
-                className={`p-1.5 ${previewMode === 'black' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-white'}`}
+                className={`p-1.5 ${previewMode === 'black' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-ink'}`}
                 title="Black"
               >
                 <Moon className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setPreviewMode('white')}
-                className={`p-1.5 ${previewMode === 'white' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-white'}`}
+                className={`p-1.5 ${previewMode === 'white' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-ink'}`}
                 title="White"
               >
                 <Sun className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setPreviewMode('cyber-grid')}
-                className={`p-1.5 ${previewMode === 'cyber-grid' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-white'}`}
+                className={`p-1.5 ${previewMode === 'cyber-grid' ? 'bg-white text-black font-bold' : 'text-gray-500 hover:text-ink'}`}
                 title="Cyber Grid"
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -184,28 +187,28 @@ export default function CharacterStudio(): JSX.Element {
             </div>
 
             {/* Category Filter Pills */}
-            <div className="flex flex-wrap border border-white/15 bg-white/5 p-0.5 text-xs font-mono">
+            <div className="flex flex-wrap border border-line/15 bg-tint/5 p-0.5 text-xs font-mono">
               <button
                 onClick={() => setActiveCategory('all')}
-                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'all' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'all' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-ink'}`}
               >
                 All ({characters.length})
               </button>
               <button
                 onClick={() => setActiveCategory('diesel')}
-                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'diesel' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'diesel' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-ink'}`}
               >
                 Diesel
               </button>
               <button
                 onClick={() => setActiveCategory('racing')}
-                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'racing' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'racing' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-ink'}`}
               >
                 Racing
               </button>
               <button
                 onClick={() => setActiveCategory('eco')}
-                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'eco' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1 text-[10px] uppercase tracking-wider ${activeCategory === 'eco' ? 'bg-cyan-400 text-black font-bold' : 'text-gray-400 hover:text-ink'}`}
               >
                 Eco
               </button>
@@ -218,10 +221,10 @@ export default function CharacterStudio(): JSX.Element {
           {filteredList.map((char) => (
             <div
               key={char.id}
-              className="group relative bg-white/[0.03] border border-white/10 hover:border-cyan-400/50 transition-all duration-300 flex flex-col overflow-hidden shadow-2xl rounded-lg"
+              className="group relative bg-tint/[0.03] border border-line/10 hover:border-cyan-400/50 transition-all duration-300 flex flex-col overflow-hidden shadow-2xl rounded-lg"
             >
               {/* Header */}
-              <div className="px-4 py-2.5 bg-[#0A0A0A] border-b border-white/10 flex items-center justify-between">
+              <div className="px-4 py-2.5 bg-canvas border-b border-line/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-cyan-400 rotate-45"></div>
                   <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-gray-300">
@@ -254,22 +257,22 @@ export default function CharacterStudio(): JSX.Element {
               </div>
 
               {/* Footer */}
-              <div className="p-4 bg-[#0A0A0A] border-t border-white/10 flex flex-col gap-2">
+              <div className="p-4 bg-canvas border-t border-line/10 flex flex-col gap-2">
                 <div>
                   <p className="text-xs font-mono text-gray-400 uppercase tracking-wider">Guardian</p>
-                  <p className="font-bold text-white text-sm">{char.name}</p>
+                  <p className="font-bold text-ink text-sm">{char.name}</p>
                   <p className="text-[10px] text-cyan-300 font-mono mt-1">{char.defaultGrade}</p>
                 </div>
                 <div className="flex gap-1.5 pt-2">
                   <button
                     onClick={() => setSelectedCharacter(char)}
-                    className="flex-1 py-1.5 px-2.5 bg-white/10 hover:bg-white/20 text-white text-[9px] uppercase font-bold rounded transition-all"
+                    className="flex-1 py-1.5 px-2.5 bg-tint/10 hover:bg-tint/20 text-ink text-[9px] uppercase font-bold rounded transition-all"
                   >
                     Info
                   </button>
                   <button
                     onClick={() => handleCopy(char)}
-                    className="p-1.5 border border-white/10 bg-white/5 hover:border-cyan-400 text-gray-400 hover:text-white transition-all rounded"
+                    className="p-1.5 border border-line/10 bg-tint/5 hover:border-cyan-400 text-gray-400 hover:text-ink transition-all rounded"
                     title="Copy Character ID"
                   >
                     {copiedId === char.id ? (
@@ -292,20 +295,20 @@ export default function CharacterStudio(): JSX.Element {
           onClick={() => setSelectedCharacter(null)}
         >
           <div
-            className="bg-[#0A0A0A] border border-cyan-400/40 w-full max-w-2xl max-h-[95vh] flex flex-col shadow-[0_0_60px_rgba(0,240,255,0.2)] rounded-lg overflow-hidden"
+            className="bg-canvas border border-cyan-400/40 w-full max-w-2xl max-h-[95vh] flex flex-col shadow-[0_0_60px_rgba(0,240,255,0.2)] rounded-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-[#0A0A0A] border-b border-white/10 flex items-center justify-between">
+            <div className="px-6 py-4 bg-canvas border-b border-line/10 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white">{selectedCharacter.name}</h2>
+                <h2 className="text-xl font-bold text-ink">{selectedCharacter.name}</h2>
                 <p className="text-[10px] text-cyan-400 font-mono uppercase tracking-wider mt-0.5">
                   {selectedCharacter.codename} • {selectedCharacter.number}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedCharacter(null)}
-                className="text-gray-400 hover:text-white text-2xl font-bold"
+                className="text-gray-400 hover:text-ink text-2xl font-bold"
               >
                 ✕
               </button>
@@ -315,7 +318,7 @@ export default function CharacterStudio(): JSX.Element {
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               {/* Image */}
               <div
-                className="flex-1 min-h-[300px] flex items-center justify-center p-6 overflow-auto border-b lg:border-b-0 lg:border-r border-white/10"
+                className="flex-1 min-h-[300px] flex items-center justify-center p-6 overflow-auto border-b lg:border-b-0 lg:border-r border-line/10"
                 style={getPreviewBgStyle()}
               >
                 <img
@@ -330,25 +333,25 @@ export default function CharacterStudio(): JSX.Element {
               <div className="w-full lg:w-80 bg-[#0e0e12] p-6 flex flex-col gap-5 overflow-y-auto">
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-mono uppercase tracking-widest text-cyan-300 font-bold">Guardian Name</p>
-                  <p className="text-lg font-bold text-white">{selectedCharacter.name}</p>
+                  <p className="text-lg font-bold text-ink">{selectedCharacter.name}</p>
                 </div>
 
-                <div className="space-y-1.5 border-t border-white/10 pt-3">
+                <div className="space-y-1.5 border-t border-line/10 pt-3">
                   <p className="text-[11px] font-mono uppercase tracking-widest text-cyan-300 font-bold">Category</p>
-                  <p className="text-white text-sm">{selectedCharacter.category}</p>
+                  <p className="text-ink text-sm">{selectedCharacter.category}</p>
                 </div>
 
-                <div className="space-y-1.5 border-t border-white/10 pt-3">
+                <div className="space-y-1.5 border-t border-line/10 pt-3">
                   <p className="text-[11px] font-mono uppercase tracking-widest text-cyan-300 font-bold">Default Grade</p>
-                  <p className="text-white text-sm font-mono">{selectedCharacter.defaultGrade}</p>
+                  <p className="text-ink text-sm font-mono">{selectedCharacter.defaultGrade}</p>
                   <p className="text-gray-400 text-xs">{selectedCharacter.defaultViscosity}</p>
                 </div>
 
-                <div className="space-y-1.5 border-t border-white/10 pt-3">
+                <div className="space-y-1.5 border-t border-line/10 pt-3">
                   <p className="text-[11px] font-mono uppercase tracking-widest text-cyan-300 font-bold">Theme Color</p>
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-10 h-10 rounded border border-white/20"
+                      className="w-10 h-10 rounded border border-line/20"
                       style={{ backgroundColor: selectedCharacter.themeColor }}
                     ></div>
                     <code className="text-sm font-mono text-gray-400">{selectedCharacter.themeColor}</code>
