@@ -4,19 +4,23 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
+// Keep the checked-in Firebase applet configuration authoritative. Vercel
+// environment variables must not silently point this build at another Firebase
+// project/database.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
+  apiKey: firebaseAppletConfig.apiKey,
+  authDomain: firebaseAppletConfig.authDomain,
+  projectId: firebaseAppletConfig.projectId,
+  storageBucket: firebaseAppletConfig.storageBucket,
+  messagingSenderId: firebaseAppletConfig.messagingSenderId,
+  appId: firebaseAppletConfig.appId,
   measurementId: firebaseAppletConfig.measurementId || '',
 };
 
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && firebaseConfig.projectId
-);
+export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
+export const FIRESTORE_DATABASE_ID = firebaseAppletConfig.firestoreDatabaseId || '(default)';
+
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
@@ -33,4 +37,3 @@ if (isFirebaseConfigured) {
 }
 
 export { app, auth, db, storage };
-
