@@ -116,7 +116,8 @@ export function removeWhiteBackgroundFromCanvas(
 export async function processAndUploadProductImage(
   file: File,
   productId: string,
-  autoRemoveWhite = true
+  autoRemoveWhite = true,
+  folder: string = 'products'
 ): Promise<string> {
   // 1. Process image using HTML5 Canvas with transparency preserved
   const compressedDataUrl = await compressImageFile(file, 640, autoRemoveWhite);
@@ -125,7 +126,7 @@ export async function processAndUploadProductImage(
   if (storage) {
     try {
       const blob = await dataUrlToBlob(compressedDataUrl);
-      const storageRef = ref(storage, `products/${productId}_${Date.now()}.png`);
+      const storageRef = ref(storage, `${folder}/${productId}_${Date.now()}.png`);
 
       const uploadPromise = uploadBytes(storageRef, blob, {
         contentType: 'image/png',
@@ -245,4 +246,109 @@ export async function compressImageFile(
 export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const res = await fetch(dataUrl);
   return await res.blob();
+}
+
+export interface ExtractedPalette {
+  bg: string;
+  panel: string;
+  accent: string;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return (
+    '#' +
+    [clamp(r), clamp(g), clamp(b)]
+      .map((v) => v.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
+  );
+}
+
+/** Darkens/lightens an RGB triple towards a target lightness while preserving hue direction. */
+function shade(rgb: [number, number, number], targetLightness: number): [number, number, number] {
+  const [r, g, b] = rgb;
+  const max = Math.max(r, g, b) || 1;
+  const scale = (targetLightness * 255) / max;
+  return [Math.min(255, r * scale), Math.min(255, g * scale), Math.min(255, b * scale)];
+}
+
+/**
+ * Samples a bottle/product photo and derives a small brand palette (a dark
+ * page background, a slightly lighter panel tint, and a vivid accent color)
+ * so the storefront's hero background can automatically match the product
+ * photo. Runs entirely client-side via canvas pixel sampling — no AI/network
+ * calls required.
+ */
+export async function extractPaletteFromImage(imageSrc: string): Promise<ExtractedPalette | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const size = 48;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+
+        let bestSat = -1;
+        let bestColor: [number, number, number] = [217, 123, 46]; // fallback: brand accent
+        let rSum = 0;
+        let gSum = 0;
+        let bSum = 0;
+        let count = 0;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a < 40) continue; // skip transparent pixels (removed background)
+
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const lightness = (max + min) / 2 / 255;
+          if (lightness > 0.94 || lightness < 0.06) continue; // skip near-white/near-black
+
+          const sat = max === min ? 0 : (max - min) / (255 - Math.abs(max + min - 255));
+
+          rSum += r;
+          gSum += g;
+          bSum += b;
+          count++;
+
+          if (sat > bestSat && lightness > 0.15 && lightness < 0.88) {
+            bestSat = sat;
+            bestColor = [r, g, b];
+          }
+        }
+
+        if (count === 0) {
+          resolve(null);
+          return;
+        }
+
+        const avg: [number, number, number] = [rSum / count, gSum / count, bSum / count];
+        const accentHex = rgbToHex(bestColor[0], bestColor[1], bestColor[2]);
+        const bgHex = rgbToHex(...shade(avg, 0.09));
+        const panelHex = rgbToHex(...shade(avg, 0.16));
+
+        resolve({ bg: bgHex, panel: panelHex, accent: accentHex });
+      } catch (err) {
+        console.warn('Palette extraction failed:', err);
+        resolve(null);
+      }
+    };
+
+    img.onerror = () => resolve(null);
+    img.src = imageSrc;
+  });
 }
