@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { collection, onSnapshot, orderBy, query, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase';
 import { SEED_PRODUCTS } from '../data/products';
 import { processAndUploadProductImage } from '../utils/imageCompressor';
@@ -74,22 +74,39 @@ export function useProducts(): UseProductsResult {
       };
     }
 
-    const q = query(collection(db, 'products'), orderBy('category'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Avoid orderBy('category'): one legacy document missing that field can
+    // make the entire realtime query fail and make valid products disappear.
+    const productsCollection = collection(db, 'products');
+    const unsubscribe = onSnapshot(productsCollection, (snapshot) => {
       const items = snapshot.docs.map((d) => {
         const data = d.data();
-        return { id: d.id, ...data, imageUrl: data.imageUrl || data.bottleImageUrl || undefined, bottleImageUrl: data.bottleImageUrl || data.imageUrl || undefined, compositeImageUrl: data.compositeImageUrl || undefined } as Product;
+        return {
+          id: d.id,
+          ...data,
+          imageUrl: data.imageUrl || data.bottleImageUrl || undefined,
+          bottleImageUrl: data.bottleImageUrl || data.imageUrl || undefined,
+          compositeImageUrl: data.compositeImageUrl || undefined,
+        } as Product;
       });
+
       setProducts(items);
+      productsRef.current = items;
       saveLocalProducts(items);
       setFirestoreEmpty(snapshot.empty);
       setLoading(false);
     }, (error) => {
       console.error('[Catalog] Firestore listener failed:', error);
-      setProducts([]);
+      // Keep the last known catalog visible instead of replacing it with []
+      // when Firestore temporarily rejects/fails the realtime listener.
+      const cached = getStoredLocalProducts();
+      if (cached.length > 0) {
+        setProducts(cached);
+        productsRef.current = cached;
+      }
       setFirestoreEmpty(false);
       setLoading(false);
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -100,15 +117,31 @@ export function useProducts(): UseProductsResult {
     let finalFullCharUrl = data.compositeImageUrl || undefined;
     if (fullCharacterFile) finalFullCharUrl = await processAndUploadProductImage(fullCharacterFile, `${generatedId}_fullchar`);
     const now = Date.now();
-    const newProduct: Product = { ...data, id: generatedId, imageUrl: finalImageUrl, bottleImageUrl: finalImageUrl, compositeImageUrl: finalFullCharUrl, characterId: data.characterId || 'char_01', createdAt: now, updatedAt: now };
+    const newProduct: Product = {
+      ...data,
+      id: generatedId,
+      imageUrl: finalImageUrl,
+      bottleImageUrl: finalImageUrl,
+      compositeImageUrl: finalFullCharUrl,
+      characterId: data.characterId || 'char_01',
+      createdAt: now,
+      updatedAt: now,
+    };
 
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'products', generatedId), sanitizeForFirestore({ ...newProduct, imageUrl: finalImageUrl || null, bottleImageUrl: finalImageUrl || null, compositeImageUrl: finalFullCharUrl || null } as unknown as Record<string, unknown>), { merge: true });
+      await setDoc(doc(db, 'products', generatedId), sanitizeForFirestore({
+        ...newProduct,
+        imageUrl: finalImageUrl || null,
+        bottleImageUrl: finalImageUrl || null,
+        compositeImageUrl: finalFullCharUrl || null,
+      } as unknown as Record<string, unknown>), { merge: true });
     } else {
       const updated = [newProduct, ...productsRef.current.filter((p) => p.id !== generatedId)];
       setProducts(updated);
+      productsRef.current = updated;
       saveLocalProducts(updated);
     }
+
     if (data.characterId) clearCompositeCache(data.characterId);
     return newProduct;
   }, []);
@@ -130,8 +163,12 @@ export function useProducts(): UseProductsResult {
     else finalFullCharUrl = existingProduct?.compositeImageUrl || undefined;
 
     const updatedProduct: Product = {
-      ...(existingProduct || ({} as Product)), ...updates, id,
-      imageUrl: finalImageUrl, bottleImageUrl: finalImageUrl, compositeImageUrl: finalFullCharUrl,
+      ...(existingProduct || ({} as Product)),
+      ...updates,
+      id,
+      imageUrl: finalImageUrl,
+      bottleImageUrl: finalImageUrl,
+      compositeImageUrl: finalFullCharUrl,
       characterId: updates.characterId || existingProduct?.characterId || 'char_01',
       specs: {
         viscosityIndex: updates.specs?.viscosityIndex ?? existingProduct?.specs?.viscosityIndex ?? 'N/A',
@@ -143,21 +180,32 @@ export function useProducts(): UseProductsResult {
     };
 
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'products', id), sanitizeForFirestore({ ...updates, imageUrl: finalImageUrl || null, bottleImageUrl: finalImageUrl || null, compositeImageUrl: finalFullCharUrl || null, characterId: updatedProduct.characterId, updatedAt: updatedProduct.updatedAt }), { merge: true });
+      await setDoc(doc(db, 'products', id), sanitizeForFirestore({
+        ...updates,
+        imageUrl: finalImageUrl || null,
+        bottleImageUrl: finalImageUrl || null,
+        compositeImageUrl: finalFullCharUrl || null,
+        characterId: updatedProduct.characterId,
+        updatedAt: updatedProduct.updatedAt,
+      }), { merge: true });
     } else {
       const index = currentList.findIndex((p) => p.id === id);
       const updated = [...currentList];
-      if (index >= 0) updated[index] = updatedProduct; else updated.unshift(updatedProduct);
+      if (index >= 0) updated[index] = updatedProduct;
+      else updated.unshift(updatedProduct);
       setProducts(updated);
+      productsRef.current = updated;
       saveLocalProducts(updated);
     }
   }, []);
 
   const deleteProduct = useCallback(async (id: string): Promise<void> => {
-    if (isFirebaseConfigured && db) await deleteDoc(doc(db, 'products', id));
-    else {
+    if (isFirebaseConfigured && db) {
+      await deleteDoc(doc(db, 'products', id));
+    } else {
       const filtered = productsRef.current.filter((p) => p.id !== id);
       setProducts(filtered);
+      productsRef.current = filtered;
       saveLocalProducts(filtered);
     }
   }, []);
@@ -166,10 +214,13 @@ export function useProducts(): UseProductsResult {
     if (isFirebaseConfigured && db) {
       const batch = writeBatch(db);
       const col = collection(db, 'products');
-      for (const p of SEED_PRODUCTS) batch.set(doc(col, p.id), sanitizeForFirestore({ ...p, updatedAt: Date.now() }), { merge: true });
+      for (const p of SEED_PRODUCTS) {
+        batch.set(doc(col, p.id), sanitizeForFirestore({ ...p, updatedAt: Date.now() }), { merge: true });
+      }
       await batch.commit();
     } else {
       setProducts(SEED_PRODUCTS);
+      productsRef.current = SEED_PRODUCTS;
       saveLocalProducts(SEED_PRODUCTS);
     }
   }, []);
