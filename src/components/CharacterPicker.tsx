@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HD_CHARACTERS_LIST } from '../data/characters';
+import { useCharacters } from '../hooks/useCharacters';
 import { Check, Search } from 'lucide-react';
 
 interface Props {
@@ -8,12 +8,13 @@ interface Props {
 }
 
 export default function CharacterPicker({ selectedId, onSelect }: Props) {
+  const { characters } = useCharacters();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
-  const categories = Array.from(new Set(HD_CHARACTERS_LIST.map((c) => c.category)));
+  const categories = Array.from(new Set(characters.map((c) => c.category)));
 
-  const filtered = HD_CHARACTERS_LIST.filter((c) => {
+  const filtered = characters.filter((c) => {
     const matchSearch =
       !search ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
