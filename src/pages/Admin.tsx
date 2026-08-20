@@ -16,7 +16,8 @@ import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../hooks/useProducts';
 import { CATEGORIES, type CategoryId, type Product } from '../types/product';
 import ProductForm from '../components/ProductForm';
-import AiRenderGeneratorModal from '../components/AiRenderGeneratorModal';
+import CharacterManager from '../components/CharacterManager';
+import ThemeToggle from '../components/ThemeToggle';
 import { getCharacterById } from '../data/characters';
 
 export default function Admin() {
@@ -32,12 +33,11 @@ export default function Admin() {
     resetCatalog,
   } = useProducts();
 
+  const [activeTab, setActiveTab] = useState<'catalog' | 'characters'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [aiStudioProduct, setAiStudioProduct] = useState<Product | null>(null);
-  const [aiStudioOpen, setAiStudioOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#14110F] text-white font-body">
+    <div className="min-h-screen bg-canvas text-ink font-body">
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[250] bg-emerald-500 text-black font-semibold text-xs px-4 py-3 rounded-xl shadow-2xl animate-fade-in flex items-center gap-2">
@@ -119,7 +119,7 @@ export default function Admin() {
       )}
 
       {/* Top Navigation */}
-      <header className="border-b border-white/10 bg-[#1C1815]/90 backdrop-blur-md sticky top-0 z-40 px-6 sm:px-10 py-4">
+      <header className="border-b border-line/10 bg-surface/90 backdrop-blur-md sticky top-0 z-40 px-6 sm:px-10 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#D97B2E]/10 border border-[#D97B2E]/20 flex items-center justify-center">
@@ -128,8 +128,8 @@ export default function Admin() {
             <div>
               <p className="font-display text-lg uppercase tracking-wide leading-none">ABC Lubricants Admin</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-white/40">{user?.email || 'Administrator'}</span>
-                <span className="text-white/20">·</span>
+                <span className="text-xs text-ink/40">{user?.email || 'Administrator'}</span>
+                <span className="text-ink/20">·</span>
                 <span
                   className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                     source === 'firestore'
@@ -144,16 +144,17 @@ export default function Admin() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               to="/"
-              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white transition-colors bg-white/5 hover:bg-white/10 border border-white/15 rounded-full px-4 py-2"
+              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink/70 hover:text-ink transition-colors bg-tint/5 hover:bg-tint/10 border border-line/15 rounded-full px-4 py-2"
             >
               <ExternalLink size={14} />
               View Storefront
             </Link>
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/60 hover:text-white transition-colors border border-white/15 rounded-full px-3.5 py-2 hover:bg-white/5"
+              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink/60 hover:text-ink transition-colors border border-line/15 rounded-full px-3.5 py-2 hover:bg-tint/5"
             >
               <LogOut size={14} />
               Sign Out
@@ -197,11 +198,35 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1.5 mb-8 p-1 bg-surface border border-line/10 rounded-full w-fit">
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+              activeTab === 'catalog' ? 'bg-[#D97B2E] text-ink shadow-md' : 'text-ink/60 hover:text-ink'
+            }`}
+          >
+            Catalog Grades
+          </button>
+          <button
+            onClick={() => setActiveTab('characters')}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+              activeTab === 'characters' ? 'bg-[#D97B2E] text-ink shadow-md' : 'text-ink/60 hover:text-ink'
+            }`}
+          >
+            Characters
+          </button>
+        </div>
+
+        {activeTab === 'characters' ? (
+          <CharacterManager />
+        ) : (
+        <>
         {/* Action & Filter Bar */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="font-display text-3xl uppercase tracking-wide">Catalog Grades</h1>
-            <p className="text-xs text-white/50 mt-1">
+            <p className="text-xs text-ink/50 mt-1">
               Showing {filteredProducts.length} of {products.length} registered lubricant grades with holding titans
             </p>
           </div>
@@ -209,30 +234,10 @@ export default function Admin() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => {
-                setAiStudioProduct(null);
-                setAiStudioOpen(true);
-              }}
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-400/50 text-cyan-200 rounded-full px-4 py-2.5 transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-              title="Generate 3D realistic character renders with Gemini AI"
-            >
-              <Sparkles size={14} className="text-cyan-300 animate-pulse" />
-              AI 3D Photo Studio
-            </button>
-            <button
-              onClick={handleSeed}
-              disabled={seeding}
-              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider border border-white/20 rounded-full px-4 py-2.5 hover:bg-white/10 transition-colors disabled:opacity-50 text-white/80"
-              title="Populate missing standard catalog items"
-            >
-              <DatabaseZap size={14} className="text-[#D97B2E]" />
-              {seeding ? 'Syncing…' : 'Seed Defaults'}
-            </button>
-            <button
-              onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
               }}
-              className="flex items-center gap-2 bg-[#D97B2E] text-white text-xs font-bold uppercase tracking-wider rounded-full px-5 py-2.5 hover:bg-[#c46b23] transition-colors shadow-lg"
+              className="flex items-center gap-2 bg-[#D97B2E] text-ink text-xs font-bold uppercase tracking-wider rounded-full px-5 py-2.5 hover:bg-[#c46b23] transition-colors shadow-lg"
             >
               <Plus size={16} />
               Add New Grade
@@ -243,13 +248,13 @@ export default function Admin() {
         {/* Search & Category Filter */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
           <div className="relative flex-1 max-w-md">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by code, product name, approval, or spec..."
-              className="w-full bg-[#1C1815] border border-white/10 rounded-full pl-10 pr-4 py-2 text-xs text-white placeholder-white/30 focus:border-white/30 outline-none"
+              className="w-full bg-surface border border-line/10 rounded-full pl-10 pr-4 py-2 text-xs text-ink placeholder-ink/30 focus:border-line/30 outline-none"
             />
           </div>
 
@@ -259,8 +264,8 @@ export default function Admin() {
               onClick={() => setSelectedCategory('all')}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
                 selectedCategory === 'all'
-                  ? 'bg-white text-[#14110F]'
-                  : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                  ? 'bg-ink text-canvas'
+                  : 'bg-tint/5 text-ink/60 hover:text-ink hover:bg-tint/10'
               }`}
             >
               All ({products.length})
@@ -273,8 +278,8 @@ export default function Admin() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
                     selectedCategory === cat.id
-                      ? 'bg-white text-[#14110F]'
-                      : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                      ? 'bg-ink text-canvas'
+                      : 'bg-tint/5 text-ink/60 hover:text-ink hover:bg-tint/10'
                   }`}
                 >
                   {cat.label} ({count})
@@ -286,10 +291,10 @@ export default function Admin() {
 
         {/* Empty state */}
         {filteredProducts.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/20 p-12 text-center my-8">
-            <Droplet size={36} className="mx-auto text-white/20 mb-3" />
+          <div className="rounded-2xl border border-dashed border-line/20 p-12 text-center my-8">
+            <Droplet size={36} className="mx-auto text-ink/20 mb-3" />
             <p className="font-display text-lg uppercase mb-1">No Lubricant Grades Found</p>
-            <p className="text-xs text-white/40 max-w-sm mx-auto mb-6">
+            <p className="text-xs text-ink/40 max-w-sm mx-auto mb-6">
               {searchQuery
                 ? `No products matched "${searchQuery}". Try clearing search filters.`
                 : 'No grades are currently registered in this category.'}
@@ -298,7 +303,7 @@ export default function Admin() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-xs font-semibold px-4 py-2 rounded-full border border-white/20 hover:bg-white/5 text-white"
+                  className="text-xs font-semibold px-4 py-2 rounded-full border border-line/20 hover:bg-tint/5 text-ink"
                 >
                   Clear Search
                 </button>
@@ -308,7 +313,7 @@ export default function Admin() {
                   setEditing(null);
                   setFormOpen(true);
                 }}
-                className="text-xs font-semibold px-4 py-2 rounded-full bg-white text-[#14110F] hover:bg-white/90"
+                className="text-xs font-semibold px-4 py-2 rounded-full bg-ink text-canvas hover:bg-ink/90"
               >
                 Create First Grade
               </button>
@@ -324,7 +329,7 @@ export default function Admin() {
 
             return (
               <section key={cat.id} className="space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="flex items-center justify-between border-b border-line/10 pb-2">
                   <h2 className="text-xs font-bold uppercase tracking-widest text-[#D97B2E] flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#D97B2E]" />
                     {cat.label} ({items.length})
@@ -337,7 +342,7 @@ export default function Admin() {
                     return (
                       <div
                         key={p.id}
-                        className="group rounded-2xl border border-white/10 bg-[#1C1815] hover:border-white/25 p-5 flex flex-col justify-between transition-all hover:shadow-xl relative overflow-hidden"
+                        className="group rounded-2xl border border-line/10 bg-surface hover:border-line/25 p-5 flex flex-col justify-between transition-all hover:shadow-xl relative overflow-hidden"
                       >
                         {/* Top Accent Strip */}
                         <div
@@ -371,7 +376,7 @@ export default function Admin() {
                                 </span>
                               ) : (
                                 <span
-                                  className="text-[10px] uppercase font-semibold text-white/80 bg-white/10 border border-white/15 px-2 py-0.5 rounded-full flex items-center gap-1"
+                                  className="text-[10px] uppercase font-semibold text-ink/80 bg-tint/10 border border-line/15 px-2 py-0.5 rounded-full flex items-center gap-1"
                                   title={`Guardian Character: ${char.name}`}
                                 >
                                   <Sparkles size={10} className="text-[#D97B2E]" />
@@ -387,32 +392,32 @@ export default function Admin() {
                           </div>
 
                           {/* Product Title & API */}
-                          <h3 className="font-semibold text-base text-white group-hover:text-[#D97B2E] transition-colors line-clamp-1">
+                          <h3 className="font-semibold text-base text-ink group-hover:text-[#D97B2E] transition-colors line-clamp-1">
                             {p.name}
                           </h3>
-                          <p className="text-xs text-white/50 mt-0.5 mb-3 font-mono">{p.apiStandard}</p>
+                          <p className="text-xs text-ink/50 mt-0.5 mb-3 font-mono">{p.apiStandard}</p>
 
-                          <p className="text-xs text-white/60 line-clamp-2 leading-relaxed mb-4">
+                          <p className="text-xs text-ink/60 line-clamp-2 leading-relaxed mb-4">
                             {p.description}
                           </p>
 
                           {/* Specs Grid Mini */}
-                          <div className="grid grid-cols-3 gap-2 bg-white/5 rounded-xl p-2.5 mb-4 text-[11px]">
+                          <div className="grid grid-cols-3 gap-2 bg-tint/5 rounded-xl p-2.5 mb-4 text-[11px]">
                             <div>
-                              <span className="text-white/40 block text-[9px] uppercase tracking-wider">Viscosity</span>
-                              <span className="font-medium text-white/90 truncate block">
+                              <span className="text-ink/40 block text-[9px] uppercase tracking-wider">Viscosity</span>
+                              <span className="font-medium text-ink/90 truncate block">
                                 {p.specs?.viscosityIndex || '—'}
                               </span>
                             </div>
                             <div>
-                              <span className="text-white/40 block text-[9px] uppercase tracking-wider">Pour Pt</span>
-                              <span className="font-medium text-white/90 truncate block">
+                              <span className="text-ink/40 block text-[9px] uppercase tracking-wider">Pour Pt</span>
+                              <span className="font-medium text-ink/90 truncate block">
                                 {p.specs?.pourPoint || '—'}
                               </span>
                             </div>
                             <div>
-                              <span className="text-white/40 block text-[9px] uppercase tracking-wider">Flash Pt</span>
-                              <span className="font-medium text-white/90 truncate block">
+                              <span className="text-ink/40 block text-[9px] uppercase tracking-wider">Flash Pt</span>
+                              <span className="font-medium text-ink/90 truncate block">
                                 {p.specs?.flashPoint || '—'}
                               </span>
                             </div>
@@ -423,13 +428,13 @@ export default function Admin() {
                               {p.specs.oemApprovals.slice(0, 2).map((appr) => (
                                 <span
                                   key={appr}
-                                  className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/10 truncate max-w-[130px]"
+                                  className="text-[10px] px-2 py-0.5 rounded bg-tint/5 text-ink/60 border border-line/10 truncate max-w-[130px]"
                                 >
                                   {appr}
                                 </span>
                               ))}
                               {p.specs.oemApprovals.length > 2 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-tint/5 text-ink/40">
                                   +{p.specs.oemApprovals.length - 2}
                                 </span>
                               )}
@@ -438,30 +443,18 @@ export default function Admin() {
                         </div>
 
                         {/* Card Actions */}
-                        <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto">
+                        <div className="flex items-center justify-between pt-3 border-t border-line/10 mt-auto">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <button
                               onClick={() => {
                                 setEditing(p);
                                 setFormOpen(true);
                               }}
-                              className="flex items-center gap-1 text-xs font-semibold text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                              className="flex items-center gap-1 text-xs font-semibold text-ink/80 hover:text-ink px-2.5 py-1.5 rounded-lg hover:bg-tint/10 transition-colors"
                               aria-label={`Edit ${p.name}`}
                             >
                               <Edit2 size={13} />
                               Edit
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setAiStudioProduct(p);
-                                setAiStudioOpen(true);
-                              }}
-                              className="flex items-center gap-1 text-xs font-bold text-cyan-300 hover:text-cyan-200 px-2.5 py-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 transition-colors"
-                              title="Generate Realistic 3D Character Photo with AI"
-                            >
-                              <Sparkles size={12} className="text-cyan-400" />
-                              AI 3D Render
                             </button>
                           </div>
 
@@ -476,7 +469,7 @@ export default function Admin() {
                                 </button>
                                 <button
                                   onClick={() => setDeleteConfirmId(null)}
-                                  className="text-xs text-white/40 hover:text-white px-1.5 py-1"
+                                  className="text-xs text-ink/40 hover:text-ink px-1.5 py-1"
                                 >
                                   Cancel
                                 </button>
@@ -484,7 +477,7 @@ export default function Admin() {
                             ) : (
                               <button
                                 onClick={() => setDeleteConfirmId(p.id)}
-                                className="text-white/40 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                                className="text-ink/40 hover:text-red-400 p-1.5 rounded-lg hover:bg-tint/5 transition-colors"
                                 aria-label={`Delete ${p.name}`}
                               >
                                 <Trash2 size={14} />
@@ -500,6 +493,8 @@ export default function Admin() {
             );
           })}
         </div>
+        </>
+        )}
       </main>
 
       {/* Product Form Modal */}
@@ -519,19 +514,6 @@ export default function Admin() {
           onUpdate={updateProduct}
         />
       )}
-
-      {/* AI Realistic 3D Render Studio Modal */}
-      <AiRenderGeneratorModal
-        isOpen={aiStudioOpen}
-        onClose={() => {
-          setAiStudioOpen(false);
-          setAiStudioProduct(null);
-        }}
-        initialProduct={aiStudioProduct}
-        onApplySuccess={() => {
-          showToast('Realistic 3D Character applied and published to live catalog!');
-        }}
-      />
     </div>
   );
 }
