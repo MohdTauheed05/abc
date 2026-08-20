@@ -1,11 +1,11 @@
 import { useState, useId, type FormEvent } from 'react';
-import { Sparkles, UploadCloud, X, Trash2, Image as ImageIcon, Check, Wand2, Loader2 } from 'lucide-react';
+import { Sparkles, UploadCloud, X, Trash2, Image as ImageIcon, Check, Wand2, Loader2, Palette } from 'lucide-react';
 import { CATEGORIES, type CategoryId, type Product } from '../types/product';
 import { getCharacterById } from '../data/characters';
-import { compressImageFile } from '../utils/imageCompressor';
+import { useCharacters } from '../hooks/useCharacters';
+import { compressImageFile, extractPaletteFromImage } from '../utils/imageCompressor';
 import CharacterBottleHolder from './CharacterBottleHolder';
 import CharacterPicker from './CharacterPicker';
-import AiRenderGeneratorModal from './AiRenderGeneratorModal';
 
 interface Props {
   initial?: Product | null;
@@ -65,10 +65,10 @@ export default function ProductForm({
   );
   const [processingImage, setProcessingImage] = useState(false);
   const [autoRemoveWhite, setAutoRemoveWhite] = useState(true);
+  const [autoColorApplied, setAutoColorApplied] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [aiStudioOpen, setAiStudioOpen] = useState(false);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -80,9 +80,45 @@ export default function ProductForm({
     setProcessingImage(true);
     try {
       const cleanedDataUrl = await compressImageFile(file, 640, autoRemoveWhite);
-      setImagePreview(cleanedDataUrl || URL.createObjectURL(file));
+      const finalPreview = cleanedDataUrl || URL.createObjectURL(file);
+      setImagePreview(finalPreview);
+
+      // Auto-suggest a matching page theme from the bottle photo's dominant
+      // colors (only for a brand new grade that hasn't been hand-tuned yet,
+      // so we never clobber a color scheme the admin already customized).
+      if (!initial) {
+        try {
+          const palette = await extractPaletteFromImage(finalPreview);
+          if (palette) {
+            update('bg', palette.bg);
+            update('panel', palette.panel);
+            update('accent', palette.accent);
+            setAutoColorApplied(true);
+          }
+        } catch (err) {
+          console.warn('Auto palette extraction failed:', err);
+        }
+      }
     } catch {
       setImagePreview(URL.createObjectURL(file));
+    } finally {
+      setProcessingImage(false);
+    }
+  }
+
+  async function handleMatchColorsToPhoto() {
+    if (!imagePreview) return;
+    setProcessingImage(true);
+    try {
+      const palette = await extractPaletteFromImage(imagePreview);
+      if (palette) {
+        update('bg', palette.bg);
+        update('panel', palette.panel);
+        update('accent', palette.accent);
+        setAutoColorApplied(true);
+      }
+    } catch (err) {
+      console.warn('Auto palette extraction failed:', err);
     } finally {
       setProcessingImage(false);
     }
@@ -141,6 +177,7 @@ export default function ProductForm({
   }
 
   const selectedCharacter = getCharacterById(form.characterId);
+  const { characters: allCharacters } = useCharacters();
 
   // Live preview product object based on active presentation mode
   const previewProduct: Product = {
@@ -372,26 +409,11 @@ export default function ProductForm({
                     </div>
                   </div>
                   <p className="text-[11px] text-white/60 leading-relaxed">
-                    Generate a photorealistic 3D robotic render holding your bottle on the pedestal using AI, or upload your own 3D image.
+                    Upload a photorealistic 3D character render already holding the bottle.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {/* Option A: Generate with AI Studio */}
-                    <button
-                      type="button"
-                      onClick={() => setAiStudioOpen(true)}
-                      className="py-3 px-3 rounded-lg bg-gradient-to-r from-cyan-950/80 to-blue-950/80 hover:from-cyan-900 hover:to-blue-900 border border-cyan-400/40 text-cyan-200 text-xs font-bold uppercase tracking-wider flex flex-col items-center justify-center gap-1 shadow-lg shadow-cyan-950/40 transition-all"
-                    >
-                      <div className="flex items-center gap-1.5 text-cyan-300">
-                        <Sparkles size={16} className="animate-pulse" />
-                        <span>✨ Generate with AI Studio</span>
-                      </div>
-                      <span className="text-[9px] text-white/50 lowercase">
-                        photoreal 3D octane render (Image 1 quality)
-                      </span>
-                    </button>
-
-                    {/* Option B: Choose File */}
+                  <div className="grid grid-cols-1 gap-2 pt-1">
+                    {/* Choose File */}
                     <label className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-amber-500/40 p-2.5 cursor-pointer hover:border-amber-400 hover:bg-amber-500/10 transition-all text-center">
                       <UploadCloud size={18} className="text-[#D97B2E]" />
                       <div className="text-xs">
@@ -529,7 +551,7 @@ export default function ProductForm({
           {/* Character Library Selector (24+ Prebuilt Characters) */}
           <div className="pt-2 border-t border-white/10">
             <div className="mb-2 flex items-center justify-between">
-              <span className="label text-white/80">HD Character Library (12 Photoreal Guardians)</span>
+              <span className="label text-white/80">HD Character Library ({allCharacters.length} Guardians)</span>
               {presentationMode === 'realistic-3d' && (
                 <span className="text-[10px] text-amber-400 font-mono">
                   (Selecting a character switches to HD Character mode)
@@ -543,7 +565,27 @@ export default function ProductForm({
           </div>
 
           {/* Color Palette Customization */}
-          <div className="grid sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between pt-3 border-t border-white/10">
+            <span className="font-display uppercase text-sm tracking-wide">Page Theme Colors</span>
+            {imagePreview && (
+              <button
+                type="button"
+                onClick={handleMatchColorsToPhoto}
+                disabled={processingImage}
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-[#D97B2E]/15 text-[#D97B2E] hover:bg-[#D97B2E]/25 transition-colors disabled:opacity-50"
+                title="Auto-detect colors from the bottle photo"
+              >
+                {processingImage ? <Loader2 size={12} className="animate-spin" /> : <Palette size={12} />}
+                Match Colors to Photo
+              </button>
+            )}
+          </div>
+          {autoColorApplied && (
+            <p className="text-[10px] text-emerald-400 -mt-2">
+              Theme colors were auto-matched to the bottle photo — feel free to fine-tune below.
+            </p>
+          )}
+          <div className="grid sm:grid-cols-3 gap-3">
             <Field label="Hero Stage Background">
               <div className="flex items-center gap-2">
                 <input
@@ -656,33 +698,6 @@ export default function ProductForm({
           </button>
         </div>
       </form>
-
-      {/* AI Realistic 3D Render Studio Modal */}
-      <AiRenderGeneratorModal
-        isOpen={aiStudioOpen}
-        onClose={() => setAiStudioOpen(false)}
-        initialProduct={
-          initial || {
-            id: 'temp_prod',
-            code: form.code || 'GRADE',
-            name: form.name || 'VENOL Synthetic Oil',
-            category: form.category,
-            viscosity: form.viscosity || 'SAE 0W-16',
-            apiStandard: form.apiStandard,
-            description: form.description,
-            bg: form.bg,
-            characterId: form.characterId,
-            imageUrl: imagePreview || '',
-            specs: {
-              oemApprovals: [],
-            },
-          }
-        }
-        onApplySuccess={(_prodId, imageUrl) => {
-          setFullCharPreview(imageUrl);
-          setPresentationMode('realistic-3d');
-        }}
-      />
     </div>
   );
 }
