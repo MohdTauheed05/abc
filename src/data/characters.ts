@@ -248,14 +248,49 @@ export const HD_CHARACTERS_LIST: HDCharacterAsset[] = [
 
 export const DEFAULT_CHARACTER_ID = 'char_01';
 
+/** The original 12 bundled characters — always available as a fallback set. */
+export const BUILTIN_CHARACTERS = HD_CHARACTERS_LIST;
+
+/**
+ * Live, merged character roster. Starts out equal to the bundled 12 built-in
+ * characters, but is kept in sync by `useCharacters()` (see
+ * ../hooks/useCharacters.ts) with any custom characters an admin uploads, and
+ * with any built-in characters an admin has removed. Components that just
+ * need to look a character up by id (rendering, compositing) can keep using
+ * the plain `getCharacterById` helper below — it always reads the latest
+ * merged list. Components that need to re-render when the roster itself
+ * changes (pickers, galleries, the admin manager) should use the
+ * `useCharacters()` hook instead.
+ */
+let liveCharacters: HDCharacterAsset[] = HD_CHARACTERS_LIST;
+const listeners = new Set<() => void>();
+
+export function getAllCharacters(): HDCharacterAsset[] {
+  return liveCharacters;
+}
+
+/** Internal — called by useCharacters() when Firestore/local data changes. */
+export function setLiveCharacters(next: HDCharacterAsset[]) {
+  liveCharacters = next;
+  listeners.forEach((fn) => fn());
+}
+
+export function subscribeCharacters(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 export function getCharacterById(id: string | null | undefined): HDCharacterAsset {
-  if (!id) return HD_CHARACTERS_LIST[0];
-  return HD_CHARACTERS_LIST.find((char) => char.id === id) || HD_CHARACTERS_LIST[0];
+  if (!id) return liveCharacters[0] || HD_CHARACTERS_LIST[0];
+  return (
+    liveCharacters.find((char) => char.id === id) ||
+    HD_CHARACTERS_LIST.find((char) => char.id === id) ||
+    liveCharacters[0] ||
+    HD_CHARACTERS_LIST[0]
+  );
 }
 
 export function getCharactersByCategory(category: string): HDCharacterAsset[] {
-  if (category === 'all') return HD_CHARACTERS_LIST;
-  return HD_CHARACTERS_LIST.filter((char) =>
-    char.category.toLowerCase().includes(category.toLowerCase())
-  );
+  if (category === 'all') return liveCharacters;
+  return liveCharacters.filter((char) => char.category.toLowerCase().includes(category.toLowerCase()));
 }
