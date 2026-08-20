@@ -2,7 +2,5 @@
   "name": "ABC Lubricants",
   "description": "Engineered lubricants catalog and storefront featuring motor oils, diesel lubricants, coolants, and brake fluids.",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": []
 }
