@@ -30,11 +30,11 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#14110F] text-white font-body flex flex-col">
+    <div className="min-h-screen w-full bg-canvas text-ink font-body flex flex-col">
       <div className="px-6 sm:px-10 py-6">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors"
+          className="inline-flex items-center gap-2 text-ink/60 hover:text-ink text-sm transition-colors"
         >
           <ArrowLeft size={16} />
           Back to storefront
@@ -42,7 +42,7 @@ export default function Login() {
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-12">
-        <div className="w-full max-w-md bg-[#1C1815] border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className="w-full max-w-md bg-surface border border-line/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex items-center gap-2 mb-6 justify-center">
             <Droplet size={24} fill="#D97B2E" className="text-[#D97B2E]" />
             <span className="font-display text-2xl uppercase tracking-wide">ABC Lubricants</span>
@@ -52,7 +52,7 @@ export default function Login() {
             <Lock size={16} className="text-[#D97B2E]" />
             <h1 className="font-display text-2xl uppercase text-center">Admin Portal</h1>
           </div>
-          <p className="text-xs text-white/50 mb-6 text-center">
+          <p className="text-xs text-ink/50 mb-6 text-center">
             Sign in with your Firebase Authentication user email and password to manage grades and artwork.
           </p>
 
@@ -67,7 +67,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-1.5"
+                className="block text-[11px] font-semibold uppercase tracking-widest text-ink/50 mb-1.5"
               >
                 Admin Email Address
               </label>
@@ -77,14 +77,14 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg bg-white/5 border border-white/15 px-3.5 py-2.5 text-sm focus:border-white/50 outline-none transition-colors text-white placeholder-white/20"
+                className="w-full rounded-lg bg-tint/5 border border-line/15 px-3.5 py-2.5 text-sm focus:border-line/50 outline-none transition-colors text-ink placeholder-ink/20"
                 placeholder="touheedshaikh8@gmail.com"
               />
             </div>
             <div>
               <label
                 htmlFor="password"
-                className="block text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-1.5"
+                className="block text-[11px] font-semibold uppercase tracking-widest text-ink/50 mb-1.5"
               >
                 Admin Password
               </label>
@@ -94,7 +94,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg bg-white/5 border border-white/15 px-3.5 py-2.5 text-sm focus:border-white/50 outline-none transition-colors text-white placeholder-white/20"
+                className="w-full rounded-lg bg-tint/5 border border-line/15 px-3.5 py-2.5 text-sm focus:border-line/50 outline-none transition-colors text-ink placeholder-ink/20"
                 placeholder="••••••••"
               />
             </div>
@@ -102,15 +102,15 @@ export default function Login() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-[#D97B2E] text-white hover:bg-[#c46b23] font-bold text-xs uppercase tracking-wider py-3 mt-2 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="w-full rounded-xl bg-[#D97B2E] text-ink hover:bg-[#c46b23] font-bold text-xs uppercase tracking-wider py-3 mt-2 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <LogIn size={15} />
               {submitting ? 'Authenticating with Firebase…' : 'Sign in with Firebase Auth'}
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-white/10 text-center">
-            <p className="text-[11px] text-white/40">
+          <div className="mt-6 pt-4 border-t border-line/10 text-center">
+            <p className="text-[11px] text-ink/40">
               Only authorized administrators registered in Firebase Authentication can log in.
             </p>
           </div>
