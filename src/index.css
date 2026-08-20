@@ -7,12 +7,12 @@
    (see tailwind.config.js). Values are "R G B" so Tailwind's alpha-value
    opacity modifiers (e.g. bg-tint/10) work correctly. */
 :root {
-  --canvas-rgb: 20 17 15;    /* page background, dark */
-  --surface-rgb: 28 24 21;   /* card/panel background */
-  --surface2-rgb: 23 20 18;  /* secondary panel background */
-  --line-rgb: 255 255 255;   /* borders (paired with low alpha) */
-  --ink-rgb: 255 255 255;    /* primary text */
-  --tint-rgb: 255 255 255;   /* translucent overlay/hover tint */
+  --canvas-rgb: 20 17 15;
+  --surface-rgb: 28 24 21;
+  --surface2-rgb: 23 20 18;
+  --line-rgb: 255 255 255;
+  --ink-rgb: 255 255 255;
+  --tint-rgb: 255 255 255;
 }
 
 .light {
@@ -24,16 +24,8 @@
   --tint-rgb: 20 17 15;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  height: 100%;
-}
-
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
@@ -43,9 +35,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -53,42 +43,27 @@ body {
   }
 }
 
-::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
-}
+::-webkit-scrollbar { height: 6px; width: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 4px; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 3px;
+/* Keep the product Save button clearly active while an upload/save is running. */
+form button[type="submit"]:disabled {
+  opacity: 1 !important;
+  cursor: wait !important;
+  filter: saturate(0.8) brightness(0.82);
 }
 
 @layer components {
   .input {
     @apply w-full rounded-lg bg-white/5 border border-white/15 px-3.5 py-2.5 text-sm text-white outline-none transition-colors;
   }
-  .input:focus {
-    @apply border-white/50;
-  }
+  .input:focus { @apply border-white/50; }
   .input-color {
     @apply w-full h-10 rounded-lg bg-white/5 border border-white/15 cursor-pointer;
     padding: 2px;
   }
-  .label {
-    @apply text-xs font-semibold uppercase tracking-widest text-white/50;
-  }
+  .label { @apply text-xs font-semibold uppercase tracking-widest text-white/50; }
 }
