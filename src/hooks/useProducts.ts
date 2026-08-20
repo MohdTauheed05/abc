@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, waitForPendingWrites } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase';
 import { SEED_PRODUCTS } from '../data/products';
 import { processAndUploadProductImage } from '../utils/imageCompressor';
@@ -8,6 +8,7 @@ import type { Product } from '../types/product';
 
 const LOCAL_STORAGE_KEY = 'abc_lubricants_products_catalog_v3';
 const CATALOG_CHANGE_EVENT = 'abc_lubricants_catalog_changed';
+const FIRESTORE_WRITE_TIMEOUT_MS = 15000;
 
 function sanitizeForFirestore(obj: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
@@ -40,6 +41,38 @@ function saveLocalProducts(products: Product[]) {
   } catch (err) {
     console.warn('[Catalog] Local cache write warning:', err);
   }
+}
+
+function withFirestoreTimeout<T>(promise: Promise<T>, operation: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`Firestore ${operation} timed out after 15 seconds. The write was not confirmed by Firebase. Check your Firestore database/rules and network connection.`));
+    }, FIRESTORE_WRITE_TIMEOUT_MS);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function saveToFirestore(id: string, data: Record<string, unknown>) {
+  if (!db) throw new Error('Firebase Firestore is not configured in this deployment.');
+
+  // setDoc can be reflected immediately by Firestore's local cache while the
+  // server write is still pending. Waiting for pending writes makes the Save
+  // button succeed only after Firebase has actually acknowledged the write.
+  await withFirestoreTimeout(
+    setDoc(doc(db, 'products', id), data, { merge: true }),
+    'write',
+  );
+  await withFirestoreTimeout(waitForPendingWrites(db), 'server acknowledgement');
 }
 
 export interface UseProductsResult {
@@ -96,13 +129,9 @@ export function useProducts(): UseProductsResult {
       setLoading(false);
     }, (error) => {
       console.error('[Catalog] Firestore listener failed:', error);
-      // Keep the last known catalog visible instead of replacing it with []
-      // when Firestore temporarily rejects/fails the realtime listener.
-      const cached = getStoredLocalProducts();
-      if (cached.length > 0) {
-        setProducts(cached);
-        productsRef.current = cached;
-      }
+      // Do not turn a Firestore failure into fake persistence by replacing the
+      // cloud result with localStorage. The admin save operation now reports
+      // the real Firebase error instead.
       setFirestoreEmpty(false);
       setLoading(false);
     });
@@ -129,12 +158,12 @@ export function useProducts(): UseProductsResult {
     };
 
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'products', generatedId), sanitizeForFirestore({
+      await saveToFirestore(generatedId, sanitizeForFirestore({
         ...newProduct,
         imageUrl: finalImageUrl || null,
         bottleImageUrl: finalImageUrl || null,
         compositeImageUrl: finalFullCharUrl || null,
-      } as unknown as Record<string, unknown>), { merge: true });
+      } as unknown as Record<string, unknown>));
     } else {
       const updated = [newProduct, ...productsRef.current.filter((p) => p.id !== generatedId)];
       setProducts(updated);
@@ -180,14 +209,14 @@ export function useProducts(): UseProductsResult {
     };
 
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'products', id), sanitizeForFirestore({
+      await saveToFirestore(id, sanitizeForFirestore({
         ...updates,
         imageUrl: finalImageUrl || null,
         bottleImageUrl: finalImageUrl || null,
         compositeImageUrl: finalFullCharUrl || null,
         characterId: updatedProduct.characterId,
         updatedAt: updatedProduct.updatedAt,
-      }), { merge: true });
+      }));
     } else {
       const index = currentList.findIndex((p) => p.id === id);
       const updated = [...currentList];
@@ -201,7 +230,8 @@ export function useProducts(): UseProductsResult {
 
   const deleteProduct = useCallback(async (id: string): Promise<void> => {
     if (isFirebaseConfigured && db) {
-      await deleteDoc(doc(db, 'products', id));
+      await withFirestoreTimeout(deleteDoc(doc(db, 'products', id)), 'delete');
+      await withFirestoreTimeout(waitForPendingWrites(db), 'server acknowledgement');
     } else {
       const filtered = productsRef.current.filter((p) => p.id !== id);
       setProducts(filtered);
@@ -217,7 +247,8 @@ export function useProducts(): UseProductsResult {
       for (const p of SEED_PRODUCTS) {
         batch.set(doc(col, p.id), sanitizeForFirestore({ ...p, updatedAt: Date.now() }), { merge: true });
       }
-      await batch.commit();
+      await withFirestoreTimeout(batch.commit(), 'batch write');
+      await withFirestoreTimeout(waitForPendingWrites(db), 'server acknowledgement');
     } else {
       setProducts(SEED_PRODUCTS);
       productsRef.current = SEED_PRODUCTS;
